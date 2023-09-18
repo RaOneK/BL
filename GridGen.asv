@@ -1,0 +1,51 @@
+clc; clear; close all;
+% params
+m = 6; 
+n = 6;
+kx = 1.02;
+ky = 0.98;
+lx = 1.0;
+ly = 1.0;
+
+% x,y,dx,dy
+x = zeros(1,m+1)';
+y = zeros(1,n+1)';
+dx = zeros(1,m)';
+dy = zeros(1,n)';
+% X, DX gem
+dx1 = lx  * (1-kx) /(1-kx^m);
+if (abs(kx - 1) < 1e-9) 
+    dx1= lx/m;
+end
+x(1) = 0.0;
+x(m+1) = lx;
+dx(1) = dx1;
+for i = 2:m
+    dx(i) = kx*dx(i-1);
+    x(i) = x(i-1) + dx(i-1);
+end
+
+% Y, DY gen
+dy1 = ly  * (1-ky) /(1-ky^n);
+if (abs(ky - 1) < 1e-9) 
+    dy1= ly/n;
+end
+y(1) = 0.0;
+y(n+1) = ly;
+dy(1) = dy1;
+for i = 2:n
+    dy(i) = ky*dy(i-1);
+    y(i) = y(i-1) + dy(i-1);
+end
+
+% R GEN
+n = length(dy);
+dyq = zeros(n*(n-1), 1);
+for i = 1:n
+    dyq((i-1)*(n-1)+1:i*(n-1)) = repmat(dy(i), n-1, 1);
+end
+dxq = [];
+for i = 1:m-1
+    dxq = [dxq; dx];
+end
+R = [diag([dyq; dxq])];

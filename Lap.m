@@ -60,19 +60,23 @@ R = [diag([dyq; dxq])];
 % M GEN
 M = zeros((m-1)*n+m*(n-1),1);
 ctr = 0;
-c = 0;
+rowShift = 0;
 for j = 1:n
     for i = 2:m
-        M((i-1)+c) = 0.5*(dx(i)+dx(i-1));
+        M((i-1)+rowShift) = 0.5*(dx(i)+dx(i-1));
         ctr = ctr+1;
     end
-    c = ctr;
+    ctr = ctr + 1;
+    rowShift = ctr;
 end
-c = (m-1)*n;
+for i = 1:n
+    M(i*m) = dx(m);
+end
+rowShift = (m)*n;
 ctr = 0;
 for i = 2:n
     for j = 1:m
-        M(c+(i-2)*(m)+j) = 0.5*(dy(i)+dy(i-1));
+        M(rowShift+(i-2)*(m)+j) = 0.5*(dy(i)+dy(i-1));
     end
 end
 M = diag(M);
@@ -96,7 +100,7 @@ for I = 1:m
     hn = 0.5*(dyq(I+m) + dyq(I)); 
     Lyu(I,I) = -2*(hn+hc)/(hc*hc*hn);
     Lyu(I,I + m) = 1/(hn*hc);
-    % fprintf("hc=%5.3f; hn = %5.3f\n", hc,hn);
+    
     % % top
     J = Imax + 1 - I;
     hc = dyq(J);
@@ -117,9 +121,7 @@ for I = m+1:Imax-(m)
     Lyu(I,I) = - (hs+hn) /(hs*hc*hn); % u  times 
     Lyu(I,I + m) = 1/(hn*hc); % u east times
     Lyu(I,I -(m))= 1/(hs*hc); % u west times
-    % fprintf("hs = %5.3f; hc=%5.3f; hn = %5.3f\n", hs,hc,hn);
 end
-% % spy(Lyu);
 
 %!!!!!!!!!!!!!!!! Lxu : d^2u/dx^2 !!!!!!!!!!!!!!!!!!!!!!!
 
@@ -136,26 +138,21 @@ for I = 0:n-1
     %! VALUE AT THE FACE ON LEFT EDGE Lxu(I*(m-1)+1 , I*(m-1)+1 - 1) -> moved to RHS in BC subroutine
     Lxu(I*(m)+1 , I*(m)+1 ) = -2/(hw*he);
     Lxu(I*(m)+1 , I*(m)+1 + 1 ) = 1/(he*hc);
-    % fprintf("hw = %7.5f; hc=%7.5f; he = %7.5f\n", hw,hc,he);
-
+   
     % ! right
     hc = dxLu((I+1) * (m-1));
     he = dxLu((I+1) * (m-1));
     hw = dxLu((I+1) * (m-1));
-    % fprintf("hw = %7.5f; hc=%7.5f; he = %7.5f\n", hw,hc,he);
 
     % ! TWO POINT SCHEME
     Lxu((I+1)* (m) , (I+1)*(m) )    = -2/(hw*he) + 1/(hc*he);
     Lxu((I+1)*(m) , (I+1)*(m) -1 )  = 1/(hc*hw);
-     
 
     % ! INTERIOR
-    
     for J = I*(m-1)+2:(I+1)*(m-1)
         hc = 0.5*(dxLu(J)+dxLu(J-1));
         he = dxLu(J);
         hw = dxLu(J-1);
-        % fprintf("dxLu(%2d)=%7.5f hw = %7.5f; hc=%7.5f; he = %7.5f\n", J,dxLu(J),hw,hc,he);
         Lxu( ctr , ctr ) = - (hw+he)/(hw*he*hc);
         Lxu( ctr , ctr+1 ) = 1/(he*hc);
         Lxu( ctr , ctr-1 ) = 1/(hw*hc);
@@ -164,15 +161,11 @@ for I = 0:n-1
     ctr = ctr + 2;
 end
 
-% spy(Lxu+Lyu);
-
 %%!!!!!!!!!!!!!!!!!! Lyv : d^2v/dy^2 !!!!!!!!!!!!!!!!
 for i=0:n-2
     dyLv(i*m+1:i*m+m)=dy(i+2);
 end
-
 Imax= m*(n-1);
-% 
 for I = 1:m
     %!bottom
     hc = 0.5*(dyLv(I)+dy(1));
@@ -189,6 +182,7 @@ for I = 1:m
     Lyv(J,J) = -(hs+hn)/(hs*hc*hn);
     Lyv(J,J - m ) = 1/(hs*hc);
 end
+% ! INNER
 for I = m + 1:Imax-(m);
     hc = 0.5*(dyLv(I)+dyLv(I-m));
     hn = dyLv(I);
@@ -225,7 +219,6 @@ for I = 0:n-2
 end
 L(1:nu,1:nu) = Lxu + Lyu;
 L(nu+1:nu+nv,nu+1:nu+nv) = Lxv + Lyv;
-spy(L)
 
 A = (M*L*inv(R));
-% spy(round((A-A')*100)/100);
+spy(round((A-A')*100)/100);
